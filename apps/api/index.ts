@@ -27,6 +27,20 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/email", emailRoutes);
 
+app.get("/", (req, res) => {
+    res.json({
+        status: "success",
+        message: "MyAppPortfolio API Server is active",
+        environment: process.env.VERCEL ? "Vercel Serverless" : "Local",
+        configuration: {
+            databaseUrl: (process.env.MONGO_URL || process.env.DATABASE_URL) ? "Configured" : "Missing",
+            jwtKey: process.env.JWT_KEY ? "Configured" : "Missing",
+            cloudinaryKey: process.env.CLOUDINARY_API_KEY ? "Configured" : "Missing",
+            email: process.env.EMAIL ? "Configured" : "Missing",
+        }
+    });
+});
+
 if (!process.env.VERCEL) {
     app.listen(process.env.PORT || 5000, () => {
         console.log("Server is Running locally");

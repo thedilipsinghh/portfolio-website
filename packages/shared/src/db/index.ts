@@ -10,10 +10,19 @@ dotenv.config();
 
 const databaseUrl = (process.env.MONGO_URL || process.env.DATABASE_URL)?.trim();
 
-if (!databaseUrl) {
-    throw new Error("MONGO_URL or DATABASE_URL environment variable is required");
-}
+const getDb = () => {
+    if (!databaseUrl) {
+        console.warn("WARNING: MONGO_URL or DATABASE_URL is missing! Database queries will fail.");
+        return null;
+    }
+    try {
+        const sql = neon(databaseUrl);
+        return drizzle(sql, { schema });
+    } catch (e) {
+        console.error("CRITICAL: Failed to initialize Drizzle database client:", e);
+        return null;
+    }
+};
 
-const sql = neon(databaseUrl);
-export const db = drizzle(sql, { schema });
+export const db = getDb() as unknown as ReturnType<typeof drizzle<typeof schema>>;
 export * from "./schema";
