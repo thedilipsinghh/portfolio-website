@@ -8,7 +8,7 @@ import path from "path";
 dotenv.config({ path: path.join(__dirname, "../../../../apps/api/.env") });
 dotenv.config();
 
-const databaseUrl = process.env.MONGO_URL || process.env.DATABASE_URL;
+const databaseUrl = (process.env.MONGO_URL || process.env.DATABASE_URL)?.trim();
 
 if (!databaseUrl) {
     throw new Error("MONGO_URL or DATABASE_URL environment variable is required");
