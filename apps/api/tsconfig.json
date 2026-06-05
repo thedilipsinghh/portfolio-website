@@ -1,0 +1,16 @@
+{
+  "extends": "../../packages/configs/tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./"
+  },
+  "include": [
+    "index.ts",
+    "controller/**/*.ts",
+    "modal/**/*.ts",
+    "route/**/*.ts",
+    "utils/**/*.ts",
+    "template/**/*.ts",
+    "seed/**/*.ts"
+  ]
+}
