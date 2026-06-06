@@ -11,9 +11,9 @@ export default function Navbar() {
             initial={{ y: -80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="w-full sticky top-0 z-50 #f7f7f7/70 backdrop-blur-md border-b"
+            className="w-full sticky top-0 z-50 bg-[#f7f7f7]/70 backdrop-blur-md border-b border-gray-200"
         >
-            <div className="max-w-7xl mx-auto py-2.5 flex items-center justify-between">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between">
 
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-2">
