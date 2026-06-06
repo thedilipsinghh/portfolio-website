@@ -14,8 +14,8 @@
   "license": "ISC",
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
-    "@portfolio/types": "*",
-    "@portfolio/shared": "*",
+    "@portfolio/types": "file:../../packages/types",
+    "@portfolio/shared": "file:../../packages/shared",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
     "cookie-parser": "^1.4.7",
