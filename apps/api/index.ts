@@ -8,6 +8,7 @@ import adminRoutes from "./route/admin.routes";
 import authRoutes from "./route/auth.routes";
 import emailRoutes from "./route/email.routes";
 import { checkDbConnection } from "@portfolio/shared";
+import { PRODUCTION } from "./utils/config";
 
 // Validate required environment variables at startup
 const REQUIRED_ENV_VARS = ["JWT_KEY", "EMAIL", "EMAIL_PASS"];
@@ -29,7 +30,7 @@ app.use(cors({
     origin: (origin, callback) => {
         const cleanOrigin = origin?.trim();
         const liveClientUrl = "https://my-portfolio-client-lemon.vercel.app";
-        
+
         if (!cleanOrigin || process.env.NODE_ENV !== "production" || cleanOrigin === liveClientUrl) {
             callback(null, true);
         } else {
@@ -75,7 +76,7 @@ app.get("/api/health", async (req: Request, res: Response) => {
 // Global Error Handler Middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     console.error(`[Express Global Error Handler] Path: ${req.path} | Error:`, err);
-    
+
     const isCorsError = err.message && err.message.startsWith("Not allowed by CORS");
     const statusCode = isCorsError ? 403 : (err.statusCode || err.status || 500);
 
