@@ -1,5 +1,22 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "MONGO_URL",
+    "PORT",
+    "JWT_KEY",
+    "NODE_ENV",
+    "LIVE_URL",
+    "LOCAL_URL",
+    "CLOUDINARY_API_KEY",
+    "CLOUDINARY_API_SECRET",
+    "CLOUDINARY_API_NAME",
+    "OTP_EXIPIRY",
+    "seedPassword",
+    "seedEmail",
+    "EMAIL",
+    "SMS_API_KEY",
+    "EMAIL_PASS"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
