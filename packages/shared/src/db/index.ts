@@ -23,16 +23,6 @@ try {
     // Ignore
 }
 
-// Safe environment variable validation and retrieval
-const getDatabaseUrl = (): string | undefined => {
-    const rawUrl = process.env.MONGO_URL || process.env.DATABASE_URL;
-    if (!rawUrl) return undefined;
-    const trimmed = rawUrl.trim();
-    return trimmed === "" ? undefined : trimmed;
-};
-
-const databaseUrl = getDatabaseUrl();
-
 // Custom fetch implementation with built-in retry logic for Neon HTTP queries
 const customFetchWithRetry = async (input: any, init?: any): Promise<any> => {
     let retries = 3;
@@ -65,46 +55,54 @@ const customFetchWithRetry = async (input: any, init?: any): Promise<any> => {
 // Override the global fetch function for Neon queries
 neonConfig.fetchFunction = customFetchWithRetry;
 
-// Create a fail-safe database client proxy that throws descriptive errors instead of TypeError
-const createDbProxy = (errorMessage: string): any => {
-    const handler = {
-        get(target: any, prop: string | symbol) {
-            // Return a function that throws the descriptive error when invoked
-            return () => {
-                throw new Error(`Database Client Query Error: ${errorMessage}`);
-            };
-        }
-    };
-    return new Proxy({}, handler);
-};
+// Lazy-loaded database client
+let lazyDb: any = null;
 
-const getDb = () => {
-    if (!databaseUrl) {
-        console.warn("WARNING: MONGO_URL or DATABASE_URL environment variable is missing! Database queries will fail.");
-        return createDbProxy("Database URL is missing. Ensure MONGO_URL or DATABASE_URL is configured in your environment variables.");
+const getRealDb = () => {
+    if (lazyDb) return lazyDb;
+
+    const rawUrl = process.env.MONGO_URL || process.env.DATABASE_URL;
+    if (!rawUrl) {
+        throw new Error("Database URL is missing. Ensure MONGO_URL or DATABASE_URL is configured.");
+    }
+    const trimmed = rawUrl.trim();
+    if (trimmed === "") {
+        throw new Error("Database URL is empty.");
     }
 
-    if (!databaseUrl.startsWith("postgres://") && !databaseUrl.startsWith("postgresql://")) {
-        console.error("CRITICAL: Database URL must start with 'postgres://' or 'postgresql://'.");
-        return createDbProxy("Invalid database URL format. Connection string must start with 'postgres://' or 'postgresql://'.");
+    if (!trimmed.startsWith("postgres://") && !trimmed.startsWith("postgresql://")) {
+        throw new Error("Invalid database URL format. Connection string must start with 'postgres://' or 'postgresql://'.");
     }
 
     try {
-        const sql = neon(databaseUrl);
-        return drizzle(sql, { schema });
+        const sql = neon(trimmed);
+        lazyDb = drizzle(sql, { schema });
+        return lazyDb;
     } catch (e: any) {
-        console.error("CRITICAL: Failed to initialize Drizzle database client:", e);
-        return createDbProxy(`Failed to initialize Drizzle database client: ${e.message}`);
+        throw new Error(`Failed to initialize Drizzle database client: ${e.message}`);
     }
 };
+
+// Safe Proxy wrapping the database client
+export const db = new Proxy({}, {
+    get(target: any, prop: string | symbol) {
+        // Safe check for common node/bundler properties to prevent startup crashes
+        if (prop === "then" || prop === "toJSON" || prop === "constructor" || typeof prop === "symbol") {
+            return undefined;
+        }
+        const realDb = getRealDb();
+        return Reflect.get(realDb, prop);
+    }
+}) as unknown as ReturnType<typeof drizzle<typeof schema>>;
 
 // Database connection health check utility
 export const checkDbConnection = async (): Promise<{ success: boolean; error?: string }> => {
-    if (!databaseUrl) {
+    const rawUrl = process.env.MONGO_URL || process.env.DATABASE_URL;
+    if (!rawUrl) {
         return { success: false, error: "Database URL is missing." };
     }
     try {
-        const sql = neon(databaseUrl);
+        const sql = neon(rawUrl.trim());
         await sql`SELECT 1 as one;`;
         return { success: true };
     } catch (err: any) {
@@ -112,5 +110,4 @@ export const checkDbConnection = async (): Promise<{ success: boolean; error?: s
     }
 };
 
-export const db = getDb() as unknown as ReturnType<typeof drizzle<typeof schema>>;
 export * from "./schema";
