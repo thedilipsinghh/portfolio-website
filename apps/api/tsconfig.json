@@ -6,6 +6,7 @@
   },
   "include": [
     "index.ts",
+    "api/**/*.ts",
     "controller/**/*.ts",
     "modal/**/*.ts",
     "route/**/*.ts",

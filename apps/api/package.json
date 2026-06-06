@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch index.ts",
-    "build": "tsc",
+    "build": "npm run build --prefix ../../packages/types && npm run build --prefix ../../packages/shared && tsc",
     "seed": "tsx seed/portfolioInfo.ts && tsx seed/adminInfo.ts && tsx seed/Experience.ts && tsx seed/project.ts && tsx seed/skill.ts"
   },
   "keywords": [],
