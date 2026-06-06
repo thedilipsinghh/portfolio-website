@@ -2,7 +2,12 @@
   "extends": "../../packages/configs/tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./"
+    "rootDir": "./",
+    "baseUrl": ".",
+    "paths": {
+      "@portfolio/shared": ["../../packages/shared/dist/index"],
+      "@portfolio/types": ["../../packages/types/dist/index"]
+    }
   },
   "include": [
     "index.ts",
