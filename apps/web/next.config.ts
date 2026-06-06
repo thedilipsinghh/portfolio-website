@@ -16,10 +16,23 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
+    if (!APP_URL) {
+      console.warn("WARNING: APP_URL is undefined. API rewrites will be disabled to prevent server startup crash.");
+      return [];
+    }
+
+    const cleanAppUrl = APP_URL.trim();
+    if (!cleanAppUrl) {
+      console.warn("WARNING: APP_URL is empty. API rewrites will be disabled.");
+      return [];
+    }
+
+    const dest = cleanAppUrl.startsWith("http") ? `${cleanAppUrl}/api/:path*` : `https://${cleanAppUrl}/api/:path*`;
+
     return [
       {
         source: "/api/:path*",
-        destination: `${APP_URL}/api/:path*`,
+        destination: dest,
       },
     ];
   }
