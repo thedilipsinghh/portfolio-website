@@ -29,9 +29,15 @@ app.use(cookieParser());
 app.use(cors({
     origin: (origin, callback) => {
         const cleanOrigin = origin?.trim();
-        const liveClientUrl = "https://my-portfolio-client-lemon.vercel.app";
+        const allowedOrigins = [
+            "https://my-portfolio-client-lemon.vercel.app",
+            "https://portfolio-website-web-five.vercel.app",
+            process.env.LIVE_URL
+        ];
 
-        if (!cleanOrigin || process.env.NODE_ENV !== "production" || cleanOrigin === liveClientUrl) {
+        const isVercelPreview = cleanOrigin?.endsWith(".vercel.app");
+
+        if (!cleanOrigin || process.env.NODE_ENV !== "production" || allowedOrigins.includes(cleanOrigin) || isVercelPreview) {
             callback(null, true);
         } else {
             callback(new Error(`Not allowed by CORS: Origin '${cleanOrigin}' is not permitted in production.`));
