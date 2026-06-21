@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "admin",
-    "slug": "admin",
+    "name": "MyPortfolio",
+    "slug": "myportfolio",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,13 +16,19 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.thedilipsinghh.admin"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "cc0b1427-5f4c-4ce2-ba17-aa2b5d6661b3"
+      }
+    }
   }
 }

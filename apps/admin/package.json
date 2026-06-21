@@ -6,7 +6,7 @@
     "@expo/metro-runtime": "~6.1.2",
     "@portfolio/types": "*",
     "expo": "~54.0.0",
-    "expo-constants": "^56.0.16",
+    "expo-constants": "~18.0.13",
     "expo-document-picker": "~14.0.8",
     "expo-image-picker": "~17.0.11",
     "expo-secure-store": "~15.0.8",

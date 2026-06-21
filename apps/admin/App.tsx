@@ -24,12 +24,18 @@ import ProjectsScreen from "./screens/ProjectsScreen";
 import ExperiencesScreen from "./screens/ExperiencesScreen";
 import PortfolioSettingsScreen from "./screens/PortfolioSettingsScreen";
 
-const LIVE_API_URL = "https://full-task-manager-server-blue.vercel.app";
+const LIVE_API_URL = process.env.EXPO_PUBLIC_API_LIVE || "https://my-portfolio-server-alpha-one.vercel.app";
 
 const getResolvedApiUrl = (): string => {
   if (__DEV__) {
+    if (process.env.EXPO_PUBLIC_API_LOCAL) {
+      // If a local URL is provided via .env, we can still return it, 
+      // but let's prioritize dynamic IP resolution for mobile devices testing on LAN.
+      // Alternatively, we can let EXPO_PUBLIC_API_LOCAL override everything if present.
+    }
+    
     if (Platform.OS === "web") {
-      return "http://localhost:5000";
+      return process.env.EXPO_PUBLIC_API_LOCAL || "http://localhost:5000";
     }
     const hostUri = Constants.expoConfig?.hostUri;
     if (hostUri) {
@@ -38,7 +44,7 @@ const getResolvedApiUrl = (): string => {
         return `http://${ip}:5000`;
       }
     }
-    return Platform.OS === "android" ? "http://10.0.2.2:5000" : "http://localhost:5000";
+    return Platform.OS === "android" ? "http://10.0.2.2:5000" : (process.env.EXPO_PUBLIC_API_LOCAL || "http://localhost:5000");
   }
   return LIVE_API_URL;
 };
