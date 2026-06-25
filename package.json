@@ -16,5 +16,8 @@
   },
   "devDependencies": {
     "turbo": "^2.5.4"
+  },
+  "dependencies": {
+    "jimp": "^1.6.1"
   }
 }

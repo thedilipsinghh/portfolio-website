@@ -1,7 +1,7 @@
 export const triggerRevalidation = async (): Promise<void> => {
     try {
         const nextUrl = process.env.NODE_ENV === "production"
-            ? "https://my-portfolio-client-lemon.vercel.app" // or local rewrite/internal url
+            ? "https://portfolio-website-web-five.vercel.app" 
             : "http://localhost:3000";
 
         const response = await fetch(`${nextUrl}/api/revalidate`, {

@@ -265,12 +265,22 @@ export default function App() {
         body: JSON.stringify({ email: emailInput, password: passwordInput })
       });
       const data = await res.json();
-      if (res.ok && data.token) {
-        await saveStorageItem(TOKEN_KEY, data.token);
+      
+      let extractedToken = data.token;
+      if (!extractedToken) {
+        const setCookieHeader = res.headers.get("set-cookie");
+        if (setCookieHeader) {
+          const match = setCookieHeader.match(/PortfolioAdmin=([^;]+)/);
+          if (match) extractedToken = match[1];
+        }
+      }
+
+      if (res.ok && extractedToken) {
+        await saveStorageItem(TOKEN_KEY, extractedToken);
         await saveStorageItem("PortfolioApiUrl", apiUrl);
-        setToken(data.token);
+        setToken(extractedToken);
         setCurrentScreen("dashboard");
-        fetchAllData(apiUrl, data.token);
+        fetchAllData(apiUrl, extractedToken);
         Alert.alert("Success", "Logged in successfully!");
       } else {
         Alert.alert("Login Failed", data.message || "Invalid credentials");

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "MyPortfolio",
-    "slug": "myportfolio",
+    "slug": "admin",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -29,6 +29,7 @@
       "eas": {
         "projectId": "cc0b1427-5f4c-4ce2-ba17-aa2b5d6661b3"
       }
-    }
+    },
+    "owner": "thedilipsinghh"
   }
 }
