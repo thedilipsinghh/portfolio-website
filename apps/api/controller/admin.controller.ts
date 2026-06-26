@@ -232,23 +232,23 @@ export const updatePortfolio = async (req: Request, res: Response): Promise<void
         }
 
         const finalUpdate = {
-            heroName: req.body.name || req.body.hero?.name || existingPortfolio.heroName,
-            heroTitle: req.body.title || req.body.hero?.title || existingPortfolio.heroTitle,
-            heroProfileImage: updateData.profileImage || req.body.hero?.profileImage || existingPortfolio.heroProfileImage,
-            heroResume: updateData.resume || req.body.hero?.resume || existingPortfolio.heroResume,
-            aboutDescription1: req.body.about?.description1 || existingPortfolio.aboutDescription1,
-            aboutDescription2: req.body.about?.description2 || existingPortfolio.aboutDescription2,
+            heroName: req.body.name ?? req.body.hero?.name ?? existingPortfolio.heroName,
+            heroTitle: req.body.title ?? req.body.hero?.title ?? existingPortfolio.heroTitle,
+            heroProfileImage: updateData.profileImage ?? req.body.hero?.profileImage ?? existingPortfolio.heroProfileImage,
+            heroResume: updateData.resume ?? req.body.hero?.resume ?? existingPortfolio.heroResume,
+            aboutDescription1: req.body.about?.description1 ?? existingPortfolio.aboutDescription1,
+            aboutDescription2: req.body.about?.description2 ?? existingPortfolio.aboutDescription2,
             statsYearsExperience: req.body.stats?.yearsExperience !== undefined ? Number(req.body.stats.yearsExperience) : existingPortfolio.statsYearsExperience,
             statsProjectsCompleted: req.body.stats?.projectsCompleted !== undefined ? Number(req.body.stats.projectsCompleted) : existingPortfolio.statsProjectsCompleted,
             statsTechnologies: req.body.stats?.technologies !== undefined ? Number(req.body.stats.technologies) : existingPortfolio.statsTechnologies,
             statsHappyClients: req.body.stats?.happyClients !== undefined ? Number(req.body.stats.happyClients) : existingPortfolio.statsHappyClients,
-            contactEmail: req.body.contact?.email || existingPortfolio.contactEmail,
-            contactPhone: req.body.contact?.phone || existingPortfolio.contactPhone,
-            contactLocation: req.body.contact?.location || existingPortfolio.contactLocation,
-            socialGithub: req.body.social?.github || existingPortfolio.socialGithub,
-            socialLinkedin: req.body.social?.linkedin || existingPortfolio.socialLinkedin,
-            socialTwitter: req.body.social?.twitter || existingPortfolio.socialTwitter,
-            socialInstagram: req.body.social?.instagram || existingPortfolio.socialInstagram,
+            contactEmail: req.body.contact?.email ?? existingPortfolio.contactEmail,
+            contactPhone: req.body.contact?.phone ?? existingPortfolio.contactPhone,
+            contactLocation: req.body.contact?.location ?? existingPortfolio.contactLocation,
+            socialGithub: req.body.social?.github ?? existingPortfolio.socialGithub,
+            socialLinkedin: req.body.social?.linkedin ?? existingPortfolio.socialLinkedin,
+            socialTwitter: req.body.social?.twitter ?? existingPortfolio.socialTwitter,
+            socialInstagram: req.body.social?.instagram ?? existingPortfolio.socialInstagram,
         };
 
         await db.update(portfolios).set(finalUpdate).where(eq(portfolios.id, id));
@@ -295,13 +295,13 @@ export const updateProject = async (req: Request, res: Response): Promise<void> 
         }
 
         await db.update(projects).set({
-            title: req.body.title || existingProject.title,
-            description: req.body.description || existingProject.description,
-            note: req.body.note || existingProject.note,
-            image: updateData.image || existingProject.image,
-            tags: req.body.tags || existingProject.tags,
-            liveLink: req.body.liveLink || existingProject.liveLink,
-            githubLink: req.body.githubLink || existingProject.githubLink
+            title: req.body.title ?? existingProject.title,
+            description: req.body.description ?? existingProject.description,
+            note: req.body.note ?? existingProject.note,
+            image: updateData.image ?? existingProject.image,
+            tags: req.body.tags ?? existingProject.tags,
+            liveLink: req.body.liveLink ?? existingProject.liveLink,
+            githubLink: req.body.githubLink ?? existingProject.githubLink
         }).where(eq(projects.id, id));
 
         res.status(200).json({ message: "Project update" });
@@ -325,11 +325,11 @@ export const updateExperience = async (req: Request, res: Response): Promise<voi
         }
 
         await db.update(experiences).set({
-            title: req.body.title || existingExp.title,
-            place: req.body.place || existingExp.place,
-            date: req.body.date || existingExp.date,
-            type: req.body.type || existingExp.type,
-            description: req.body.description || existingExp.description
+            title: req.body.title ?? existingExp.title,
+            place: req.body.place ?? existingExp.place,
+            date: req.body.date ?? existingExp.date,
+            type: req.body.type ?? existingExp.type,
+            description: req.body.description ?? existingExp.description
         }).where(eq(experiences.id, id));
         
         res.status(200).json({ message: "Update Experience update" });

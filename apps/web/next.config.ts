@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
 
     return [
       {
-        source: "/api/:path*",
+        source: "/api/:path((?!revalidate).*)",
         destination: dest,
       },
     ];

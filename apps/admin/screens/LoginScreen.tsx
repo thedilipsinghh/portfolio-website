@@ -13,6 +13,7 @@ import {
   Switch,
   Animated,
 } from "react-native";
+import { apiService } from "../src/services/apiService";
 
 interface LoginScreenProps {
   apiUrl: string;
@@ -105,30 +106,25 @@ export default function LoginScreen({
     }
     
     setTestingConnection(true);
-    try {
-      const cleanUrl = testUrl.trim().replace(/\/$/, "");
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
-
-      const res = await fetch(`${cleanUrl}/api/auth/admin-signin`, {
-        method: "GET", // Root request or invalid method to auth signin route
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      
-      // If we receive any HTTP response (even 404 or 405), the API is running and reachable
+    
+    const cleanUrl = testUrl.trim().replace(/\/$/, "");
+    const res = await apiService.get(`${cleanUrl}/api/auth/admin-signin`);
+    
+    // We expect a response. Even a 404 or 401 means the server is reachable.
+    // apiService sets success to false if it's an HTTP error, but it sets error to specific strings if network fails.
+    if (res.error?.includes("Network request failed") || res.error?.includes("timed out")) {
+      Alert.alert(
+        "Connection Error",
+        `Could not reach:\n${testUrl}\n\nEnsure the backend server is running and accessible on your network.\n\nError: ${res.error}`
+      );
+    } else {
       Alert.alert(
         "Connection Success",
         `Successfully reached server at:\n${cleanUrl}\n\nServer Status: Active`
       );
-    } catch (e: any) {
-      Alert.alert(
-        "Connection Error",
-        `Could not reach:\n${testUrl}\n\nEnsure the backend server is running and accessible on your network.\n\nError: ${e.message || "Network Timeout"}`
-      );
-    } finally {
-      setTestingConnection(false);
     }
+    
+    setTestingConnection(false);
   };
 
   const handleApplyConfig = async () => {

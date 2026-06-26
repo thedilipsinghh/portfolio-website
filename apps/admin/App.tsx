@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   Platform,
   Image,
 } from "react-native";
+import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
@@ -24,30 +24,8 @@ import ProjectsScreen from "./screens/ProjectsScreen";
 import ExperiencesScreen from "./screens/ExperiencesScreen";
 import PortfolioSettingsScreen from "./screens/PortfolioSettingsScreen";
 
-const LIVE_API_URL = process.env.EXPO_PUBLIC_API_LIVE || "https://my-portfolio-server-alpha-one.vercel.app";
-
-const getResolvedApiUrl = (): string => {
-  if (__DEV__) {
-    if (process.env.EXPO_PUBLIC_API_LOCAL) {
-      // If a local URL is provided via .env, we can still return it, 
-      // but let's prioritize dynamic IP resolution for mobile devices testing on LAN.
-      // Alternatively, we can let EXPO_PUBLIC_API_LOCAL override everything if present.
-    }
-    
-    if (Platform.OS === "web") {
-      return process.env.EXPO_PUBLIC_API_LOCAL || "http://localhost:5000";
-    }
-    const hostUri = Constants.expoConfig?.hostUri;
-    if (hostUri) {
-      const ip = hostUri.split(":")[0];
-      if (ip) {
-        return `http://${ip}:5000`;
-      }
-    }
-    return Platform.OS === "android" ? "http://10.0.2.2:5000" : (process.env.EXPO_PUBLIC_API_LOCAL || "http://localhost:5000");
-  }
-  return LIVE_API_URL;
-};
+import { API_BASE_URL } from "./src/config/api";
+import { apiService } from "./src/services/apiService";
 
 const TOKEN_KEY = "PortfolioAdminToken";
 
@@ -94,7 +72,7 @@ const deleteStorageItem = async (key: string) => {
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null);
-  const [apiUrl, setApiUrl] = useState<string>(getResolvedApiUrl());
+  const [apiUrl, setApiUrl] = useState<string>(API_BASE_URL);
   const [isCustomUrl, setIsCustomUrl] = useState<boolean>(false);
   const [customUrl, setCustomUrl] = useState<string>("");
   const [currentScreen, setCurrentScreen] = useState<Screen>("login");
@@ -116,7 +94,7 @@ export default function App() {
         const savedUseCustom = await getStorageItem("PortfolioUseCustomApiUrl");
         const savedCustomUrl = await getStorageItem("PortfolioCustomApiUrl");
         
-        let activeUrl = getResolvedApiUrl();
+        let activeUrl = API_BASE_URL;
         
         if (savedUseCustom === "true" && savedCustomUrl) {
           setIsCustomUrl(true);
@@ -125,7 +103,7 @@ export default function App() {
         } else if (savedCustomUrl) {
           setCustomUrl(savedCustomUrl);
         } else {
-          setCustomUrl(getResolvedApiUrl());
+          setCustomUrl(API_BASE_URL);
         }
         
         setApiUrl(activeUrl);
@@ -166,78 +144,44 @@ export default function App() {
   };
 
   const fetchPortfolio = async (url = apiUrl, authToken = token): Promise<boolean> => {
-    try {
-      const res = await fetch(`${url}/api/admin/info-get`, {
-        headers: { "Authorization": `Bearer ${authToken}` },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setPortfolioData(data.PResult);
-        return true;
+    const res = await apiService.get(`${url}/api/admin/info-get`, authToken);
+    if (res.success) {
+      setPortfolioData(res.data.PResult);
+      return true;
+    } else {
+      if (res.status === 401) {
+        Alert.alert("Session Expired", "Your session has expired. Please sign in again.", [
+          { text: "OK", onPress: () => handleLogout() }
+        ]);
+      } else if (!res.status) {
+        Alert.alert(
+          "Connection Error",
+          `Could not connect to server at ${url}.\n\nPlease check your network connection and server settings.`,
+          [
+            { text: "Retry", onPress: () => fetchPortfolio(url, authToken) },
+            { text: "Change Server URL", onPress: () => handleLogout(), style: "destructive" }
+          ]
+        );
       } else {
-        if (res.status === 401) {
-          Alert.alert("Session Expired", "Your session has expired. Please sign in again.", [
-            { text: "OK", onPress: () => handleLogout() }
-          ]);
-        } else {
-          Alert.alert("Server Error", data.message || "Failed to fetch portfolio data.");
-        }
-        return false;
+        Alert.alert("Server Error", res.error || "Failed to fetch portfolio data.");
       }
-    } catch (e: any) {
-      console.log("Failed to fetch portfolio:", e);
-      Alert.alert(
-        "Connection Error",
-        `Could not connect to server at ${url}.\n\nPlease check your network connection and server settings.`,
-        [
-          { text: "Retry", onPress: () => fetchPortfolio(url, authToken) },
-          { text: "Change Server URL", onPress: () => handleLogout(), style: "destructive" }
-        ]
-      );
       return false;
     }
   };
 
   const fetchSkills = async (url = apiUrl, authToken = token) => {
-    try {
-      const res = await fetch(`${url}/api/admin/info-skill`, {
-        headers: { "Authorization": `Bearer ${authToken}` },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSkills(data.SResult || []);
-      }
-    } catch (e) {
-      console.log("Failed to fetch skills:", e);
-    }
+    const res = await apiService.get(`${url}/api/admin/info-skill`);
+    if (res.success) setSkills(res.data.SResult || []);
   };
 
   const fetchProjects = async (url = apiUrl, authToken = token) => {
-    try {
-      const res = await fetch(`${url}/api/admin/info-project`, {
-        headers: { "Authorization": `Bearer ${authToken}` },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setProjects(data.PResult || []);
-      }
-    } catch (e) {
-      console.log("Failed to fetch projects:", e);
-    }
+    const res = await apiService.get(`${url}/api/admin/info-project`);
+    if (res.success) setProjects(res.data.PResult || []);
   };
 
   const fetchExperiences = async (url = apiUrl, authToken = token) => {
-    try {
-      const res = await fetch(`${url}/api/admin/info-exp`, {
-        headers: { "Authorization": `Bearer ${authToken}` },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setExperiences(data.EResult || []);
-      }
-    } catch (e) {
-      console.log("Failed to fetch experiences:", e);
-    }
+    const res = await apiService.get(`${url}/api/admin/info-exp`);
+    if (res.success) setExperiences(res.data.EResult || []);
   };
 
   const handleUpdateApiConfig = async (useCustom: boolean, url: string) => {
@@ -246,7 +190,7 @@ export default function App() {
     await saveStorageItem("PortfolioUseCustomApiUrl", useCustom ? "true" : "false");
     await saveStorageItem("PortfolioCustomApiUrl", url);
     
-    const activeUrl = useCustom ? url : getResolvedApiUrl();
+    const activeUrl = useCustom ? url : API_BASE_URL;
     setApiUrl(activeUrl);
     
     await saveStorageItem("PortfolioApiUrl", activeUrl);
@@ -258,24 +202,17 @@ export default function App() {
       return;
     }
     setIsLoading(true);
-    try {
-      const res = await fetch(`${apiUrl}/api/auth/admin-signin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: emailInput, password: passwordInput })
-      });
-      const data = await res.json();
-      
-      let extractedToken = data.token;
-      if (!extractedToken) {
-        const setCookieHeader = res.headers.get("set-cookie");
-        if (setCookieHeader) {
-          const match = setCookieHeader.match(/PortfolioAdmin=([^;]+)/);
-          if (match) extractedToken = match[1];
-        }
-      }
+    const res = await apiService.post(`${apiUrl}/api/auth/admin-signin`, { email: emailInput, password: passwordInput });
 
-      if (res.ok && extractedToken) {
+    if (res.success && res.data) {
+      let extractedToken = res.data.token;
+      
+      // Some server environments might rely on cookies
+      if (!extractedToken && res.data.cookieTokenFallback) {
+          extractedToken = res.data.cookieTokenFallback;
+      }
+      
+      if (extractedToken) {
         await saveStorageItem(TOKEN_KEY, extractedToken);
         await saveStorageItem("PortfolioApiUrl", apiUrl);
         setToken(extractedToken);
@@ -283,26 +220,18 @@ export default function App() {
         fetchAllData(apiUrl, extractedToken);
         Alert.alert("Success", "Logged in successfully!");
       } else {
-        Alert.alert("Login Failed", data.message || "Invalid credentials");
+        Alert.alert("Login Failed", "Invalid credentials or token missing");
       }
-    } catch (e: any) {
-      Alert.alert("Connection Error", "Could not connect to server: " + e.message);
-    } finally {
-      setIsLoading(false);
+    } else {
+      Alert.alert(res.status ? "Login Failed" : "Connection Error", res.error || "Could not connect to server");
     }
+    
+    setIsLoading(false);
   };
 
   const handleLogout = async () => {
     setIsLoading(true);
-    try {
-      // Call backend logout
-      await fetch(`${apiUrl}/api/auth/admin-signout`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-    } catch (e) {
-      console.log("Logout api failed", e);
-    }
+    await apiService.post(`${apiUrl}/api/auth/admin-signout`, {}, token);
     await deleteStorageItem(TOKEN_KEY);
     setToken(null);
     setPortfolioData(null);
@@ -325,173 +254,114 @@ export default function App() {
   // CRUD Skills
   const handleSaveSkill = async (name: string, editingId: string | null): Promise<boolean> => {
     setIsLoading(true);
-    try {
-      const url = editingId
-        ? `${apiUrl}/api/admin/info-up-skill/${editingId}`
-        : `${apiUrl}/api/admin/info-create-skill`;
+    const url = editingId
+      ? `${apiUrl}/api/admin/info-up-skill/${editingId}`
+      : `${apiUrl}/api/admin/info-create-skill`;
 
-      const res = await fetch(url, {
-        method: editingId ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ name })
-      });
+    const res = editingId 
+      ? await apiService.put(url, { name }, token)
+      : await apiService.post(url, { name }, token);
 
-      if (res.ok) {
-        Alert.alert("Success", `Skill ${editingId ? "updated" : "created"}!`);
-        fetchSkills();
-        return true;
-      } else {
-        const err = await res.json();
-        Alert.alert("Error", err.message || "Failed to save skill");
-        return false;
-      }
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    setIsLoading(false);
+    
+    if (res.success) {
+      Alert.alert("Success", `Skill ${editingId ? "updated" : "created"}!`);
+      fetchSkills();
+      return true;
+    } else {
+      Alert.alert("Error", res.error || "Failed to save skill");
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleDeleteSkill = async (id: string): Promise<boolean> => {
     setIsLoading(true);
-    try {
-      const res = await fetch(`${apiUrl}/api/admin/info-remove-skill/${id}`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        Alert.alert("Success", "Skill deleted!");
-        fetchSkills();
-        return true;
-      } else {
-        const err = await res.json();
-        Alert.alert("Error", err.message || "Failed to delete skill");
-        return false;
-      }
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    const res = await apiService.delete(`${apiUrl}/api/admin/info-remove-skill/${id}`, token);
+    setIsLoading(false);
+    
+    if (res.success) {
+      Alert.alert("Success", "Skill deleted!");
+      fetchSkills();
+      return true;
+    } else {
+      Alert.alert("Error", res.error || "Failed to delete skill");
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   // CRUD Projects
   const handleSaveProject = async (formData: FormData, editingId: string | null): Promise<boolean> => {
     setIsLoading(true);
-    try {
-      const url = editingId
-        ? `${apiUrl}/api/admin/info-up-project/${editingId}`
-        : `${apiUrl}/api/admin/info-create-project`;
+    const url = editingId
+      ? `${apiUrl}/api/admin/info-up-project/${editingId}`
+      : `${apiUrl}/api/admin/info-create-project`;
 
-      const res = await fetch(url, {
-        method: editingId ? "PUT" : "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        },
-        body: formData
-      });
+    const res = editingId 
+      ? await apiService.put(url, formData, token)
+      : await apiService.post(url, formData, token);
 
-      if (res.ok) {
-        Alert.alert("Success", `Project ${editingId ? "updated" : "created"}!`);
-        fetchProjects();
-        return true;
-      } else {
-        const err = await res.json();
-        Alert.alert("Error", err.message || "Failed to save project");
-        return false;
-      }
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    setIsLoading(false);
+
+    if (res.success) {
+      Alert.alert("Success", `Project ${editingId ? "updated" : "created"}!`);
+      fetchProjects();
+      return true;
+    } else {
+      Alert.alert("Error", res.error || "Failed to save project");
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleDeleteProject = async (id: string): Promise<boolean> => {
     setIsLoading(true);
-    try {
-      const res = await fetch(`${apiUrl}/api/admin/info-remove-project/${id}`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        Alert.alert("Success", "Project deleted!");
-        fetchProjects();
-        return true;
-      } else {
-        const err = await res.json();
-        Alert.alert("Error", err.message || "Failed to delete project");
-        return false;
-      }
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    const res = await apiService.delete(`${apiUrl}/api/admin/info-remove-project/${id}`, token);
+    setIsLoading(false);
+
+    if (res.success) {
+      Alert.alert("Success", "Project deleted!");
+      fetchProjects();
+      return true;
+    } else {
+      Alert.alert("Error", res.error || "Failed to delete project");
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   // CRUD Experiences
   const handleSaveExperience = async (payload: any, editingId: string | null): Promise<boolean> => {
     setIsLoading(true);
-    try {
-      const url = editingId
-        ? `${apiUrl}/api/admin/info-up-exp/${editingId}`
-        : `${apiUrl}/api/admin/info-create-exp`;
+    const url = editingId
+      ? `${apiUrl}/api/admin/info-up-exp/${editingId}`
+      : `${apiUrl}/api/admin/info-create-exp`;
 
-      const res = await fetch(url, {
-        method: editingId ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
+    const res = editingId 
+      ? await apiService.put(url, payload, token)
+      : await apiService.post(url, payload, token);
 
-      if (res.ok) {
-        Alert.alert("Success", `Experience ${editingId ? "updated" : "created"}!`);
-        fetchExperiences();
-        return true;
-      } else {
-        const err = await res.json();
-        Alert.alert("Error", err.message || "Failed to save experience");
-        return false;
-      }
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    setIsLoading(false);
+
+    if (res.success) {
+      Alert.alert("Success", `Experience ${editingId ? "updated" : "created"}!`);
+      fetchExperiences();
+      return true;
+    } else {
+      Alert.alert("Error", res.error || "Failed to save experience");
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleDeleteExperience = async (id: string): Promise<boolean> => {
     setIsLoading(true);
-    try {
-      const res = await fetch(`${apiUrl}/api/admin/info-remove-exp/${id}`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        Alert.alert("Success", "Experience deleted!");
-        fetchExperiences();
-        return true;
-      } else {
-        const err = await res.json();
-        Alert.alert("Error", err.message || "Failed to delete experience");
-        return false;
-      }
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    const res = await apiService.delete(`${apiUrl}/api/admin/info-remove-exp/${id}`, token);
+    setIsLoading(false);
+
+    if (res.success) {
+      Alert.alert("Success", "Experience deleted!");
+      fetchExperiences();
+      return true;
+    } else {
+      Alert.alert("Error", res.error || "Failed to delete experience");
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -507,78 +377,55 @@ export default function App() {
     }
     const pid = portfolioData.id || portfolioData._id;
     setIsLoading(true);
-    try {
-      // 1. Send all textual profile & configuration changes (JSON PUT)
-      const textRes = await fetch(`${apiUrl}/api/admin/info-modify/${pid}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(textFields)
-      });
+    
+    // 1. Send textual settings
+    const textRes = await apiService.put(`${apiUrl}/api/admin/info-modify/${pid}`, textFields, token);
+    if (!textRes.success) {
+      Alert.alert("Error", textRes.error || "Failed to save text settings");
+      setIsLoading(false);
+      return false;
+    }
 
-      if (!textRes.ok) {
-        const err = await textRes.json();
-        Alert.alert("Error", err.message || "Failed to save text settings");
+    // 2. Send image and pdf documents
+    if (profileImage || resume) {
+      const formData = new FormData();
+      formData.append("_id", String(pid));
+
+      if (profileImage) {
+        const uri = profileImage.uri;
+        const fileType = uri.substring(uri.lastIndexOf(".") + 1);
+        const fileName = uri.substring(uri.lastIndexOf("/") + 1);
+
+        formData.append("profileImage", {
+          uri: Platform.OS === "ios" ? uri.replace("file://", "") : uri,
+          name: fileName || "profile.jpg",
+          type: `image/${fileType === "jpg" ? "jpeg" : fileType}`,
+        } as any);
+      }
+
+      if (resume) {
+        const uri = resume.uri;
+        const fileType = uri.substring(uri.lastIndexOf(".") + 1);
+        const fileName = uri.substring(uri.lastIndexOf("/") + 1);
+
+        formData.append("resume", {
+          uri: Platform.OS === "ios" ? uri.replace("file://", "") : uri,
+          name: fileName || "resume.pdf",
+          type: "application/pdf",
+        } as any);
+      }
+
+      const mediaRes = await apiService.put(`${apiUrl}/api/admin/info-modify/${pid}`, formData, token);
+      if (!mediaRes.success) {
+        Alert.alert("Error", mediaRes.error || "Failed to upload file assets");
         setIsLoading(false);
         return false;
       }
-
-      // 2. Send image and pdf documents if selected (FormData PUT)
-      if (profileImage || resume) {
-        const formData = new FormData();
-        formData.append("_id", String(pid));
-
-        if (profileImage) {
-          const uri = profileImage.uri;
-          const fileType = uri.substring(uri.lastIndexOf(".") + 1);
-          const fileName = uri.substring(uri.lastIndexOf("/") + 1);
-
-          formData.append("profileImage", {
-            uri: Platform.OS === "ios" ? uri.replace("file://", "") : uri,
-            name: fileName || "profile.jpg",
-            type: `image/${fileType === "jpg" ? "jpeg" : fileType}`,
-          } as any);
-        }
-
-        if (resume) {
-          const uri = resume.uri;
-          const fileType = uri.substring(uri.lastIndexOf(".") + 1);
-          const fileName = uri.substring(uri.lastIndexOf("/") + 1);
-
-          formData.append("resume", {
-            uri: Platform.OS === "ios" ? uri.replace("file://", "") : uri,
-            name: fileName || "resume.pdf",
-            type: "application/pdf",
-          } as any);
-        }
-
-        const mediaRes = await fetch(`${apiUrl}/api/admin/info-modify/${pid}`, {
-          method: "PUT",
-          headers: {
-            "Authorization": `Bearer ${token}`
-          },
-          body: formData
-        });
-
-        if (!mediaRes.ok) {
-          const err = await mediaRes.json();
-          Alert.alert("Error", err.message || "Failed to upload file assets");
-          setIsLoading(false);
-          return false;
-        }
-      }
-
-      // Re-fetch everything to sync state
-      await fetchPortfolio();
-      return true;
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
-      return false;
-    } finally {
-      setIsLoading(false);
     }
+
+    await fetchPortfolio();
+    setIsLoading(false);
+    return true;
   };
 
   if (!isReady) {
@@ -591,37 +438,38 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
-      
-      {/* HEADER BAR */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Image
-            source={require("./assets/logo.png")}
-            style={styles.headerLogo}
-            resizeMode="contain"
-          />
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="light" />
+        
+        {/* HEADER BAR */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Image
+              source={require("./assets/logo.png")}
+              style={styles.headerLogo}
+              resizeMode="contain"
+            />
+          </View>
+          {token && (
+            <TouchableOpacity onPress={handleLogout} style={styles.logoutButton} activeOpacity={0.8}>
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        {token && (
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton} activeOpacity={0.8}>
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
-        )}
-      </View>
 
-      {/* RENDER ACTIVE SCREEN */}
-      <View style={styles.content}>
-        {currentScreen === "login" && (
-          <LoginScreen
-            apiUrl={apiUrl}
-            isCustomUrl={isCustomUrl}
-            customUrl={customUrl}
-            onUpdateApiConfig={handleUpdateApiConfig}
-            onLogin={handleLogin}
-            isLoading={isLoading}
-          />
-        )}
+        {/* RENDER ACTIVE SCREEN */}
+        <View style={styles.content}>
+          {currentScreen === "login" && (
+            <LoginScreen
+              apiUrl={apiUrl}
+              isCustomUrl={isCustomUrl}
+              customUrl={customUrl}
+              onUpdateApiConfig={handleUpdateApiConfig}
+              onLogin={handleLogin}
+              isLoading={isLoading}
+            />
+          )}
         
         {currentScreen === "dashboard" && (
           <DashboardScreen
@@ -729,7 +577,8 @@ export default function App() {
         </View>
       )}
     </SafeAreaView>
-  );
+  </SafeAreaProvider>
+);
 }
 
 const styles = StyleSheet.create({
